@@ -25,6 +25,21 @@ module.exports = function (program) {
 	const app = express();                                            // create our app w/ express
 
 	// app configuration =================
+	// enable CORS for askfordelivery URL
+	app.use(function(req, res, next) {
+		var matchUrl = "/api/askfordelivery";
+		if (req.url.substring(0, matchUrl.length) === matchUrl) {
+			if (req.method === "OPTIONS") {
+				res.header("Access-Control-Allow-Origin", "*");
+				res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+				res.send(204);
+				return;
+			}
+			res.header("Access-Control-Allow-Origin", "*");
+			res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+		}
+		next();
+	});
 	app.use(auth);                                                  // enable authentication
 	app.use(express.static(__dirname + '/../public'));              // set the static files location /public/img will be /img for users
 	app.use(bodyParser.urlencoded({'extended':'true'}));            // parse application/x-www-form-urlencoded
@@ -36,15 +51,6 @@ module.exports = function (program) {
 	  // Do logging and user-friendly error message display
 	  winston.error(err);
 	  res.status(500).send({status:500, message: 'internal error', type:'internal'}); 
-	});
-	// enable CORS for askfordelivery URL
-	app.use(function(req, res, next) {
-		var matchUrl = "/api/askfordelivery";
-		if(req.url.substring(0, matchUrl.length) === matchUrl) {
-			res.header("Access-Control-Allow-Origin", "*");
-			res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-		}
-		next();
 	});
 
 	// setup routes =================
