@@ -232,6 +232,20 @@ module.exports = function(app, lightning) {
 		});
 	});
 
+	// askfordelivery
+	app.post('/api/askfordelivery', function(req, res) {
+		lightning.addInvoice({ memo: "Ask for delivery from user " + req.body.pubkey, value: req.body.amt }, function(err, response) {
+			if (err) {
+				logger.debug('AddInvoice Error:', err);
+				err.error = err.message;
+				res.send(err)
+			} else {
+				logger.debug('AddInvoice:', response);
+				res.json(response);
+			}
+		});
+	});
+
 	// application sup -------------------------------------------------------------
 	app.get('*', function(req, res) {
 		res.sendFile(__dirname + '/../public/index.html'); // load the single view file (angular will handle the page changes on the front-end)

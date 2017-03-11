@@ -37,6 +37,15 @@ module.exports = function (program) {
 	  winston.error(err);
 	  res.status(500).send({status:500, message: 'internal error', type:'internal'}); 
 	});
+	// enable CORS for askfordelivery URL
+	app.use(function(req, res, next) {
+		var matchUrl = "/api/askfordelivery";
+		if(req.url.substring(0, matchUrl.length) === matchUrl) {
+			res.header("Access-Control-Allow-Origin", "*");
+			res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+		}
+		next();
+	});
 
 	// setup routes =================
 	require("./routes")(app, lightning);
