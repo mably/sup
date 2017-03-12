@@ -235,18 +235,22 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 		socket.on(NOTIFYUSERMETERUPDATED_EVENT, function(data, callback) {
 			debug(data);
 			var rid = data.rid; // request ID
-			var meterUpdateData = data.data; // meter update data
 			if (socket._limituser) {
 				callback({ rid: rid, error: "forbidden" });
 			} else {
 				try {
+					var meterUpdateData = data.data; // meter update data
 					debug("meterUpdateData: ", meterUpdateData);
-					for (var i = 0; i < clients.length; i++) {
-						if (!clients[i]._limituser) {
-							clients[i].emit("meterupdated", { data: meterUpdateData });
+					if (meterUpdateData) {
+						for (var i = 0; i < clients.length; i++) {
+							if (!clients[i]._limituser) {
+								clients[i].emit("meterupdated", { data: meterUpdateData });
+							}
 						}
+						callback({ rid: rid, message: "notification sent" });
+					} else {
+						callback({ rid: rid, message: "empty meter data" });
 					}
-					callback({ rid: rid, message: "notification sent" });
 				} catch (err) {
 					logger.warn(err);
 					callback({ rid: rid, error: err });
