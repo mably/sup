@@ -22,7 +22,8 @@
 			SENDPAYMENT: "/api/sendpayment",
 			DECODEPAYREQ: "/api/decodepayreq",
 			QUERYROUTE: "/api/queryroute",
-			NEWADDRESS: "/api/newaddress"
+			NEWADDRESS: "/api/newaddress",
+			NOTIFYUSERMETERUPDATE: "/api/notifyusermeterupdate",
 		};
 
 		var infoCache = null;
@@ -42,6 +43,7 @@
 		socket.on(config.events.INVOICE_WS, function(data) {
 			console.log("Invoice received:", data);
 			_this.notify(config.notif.SUCCESS, "Payment received: " + data.value + ", " + data.memo);
+			_this.notifyUserOfMeterUpdate(data);
 		});
 
 		socket.on(config.events.HELLO_WS, function(data) {
@@ -570,6 +572,19 @@
 		this.newAddress = function(type) {
 			var data = { type: type };
 			return $http.post(serverUrl(API.NEWADDRESS), data);
+		};
+
+		this.notifyUserOfMeterUpdate = function(meterUpdateData) {
+			var deferred = $q.defer();
+			var data = { rid: uuid.v4(), data: meterUpdateData };
+			socket.emit("notifyusermeterupdated", data, function (response) {
+				if (response.error) {
+					deferred.reject(response.error);
+				} else {
+					deferred.resolve(response);
+				}
+			});
+			return deferred.promise;
 		};
 
 		Object.seal(this);

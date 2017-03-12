@@ -22,6 +22,7 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 	if (limitlogin && limitpass) {
 		limitUserToken = new Buffer(limitlogin + ":" + limitpass).toString('base64');
 	}
+	debug("User tokens: " + userToken + ", " + limitUserToken);
 
 	var lndInvoicesStream = null;
 	var tailProcess = null;
@@ -86,6 +87,10 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 		if (authRequired) {
 			try {
 				var authorizationHeaderToken = socket.handshake.headers.authorization.substr(6);
+				if (!authorizationHeaderToken) {
+					authorizationHeaderToken = socket.handshake.query.auth;
+				}
+				debug("authorizationHeaderToken: " + authorizationHeaderToken);
 				if (authorizationHeaderToken === userToken) {
 					socket._limituser = false;
 				} else if (authorizationHeaderToken === limitUserToken) {
@@ -128,6 +133,7 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 	var registerEventListeners = function (socket) {
 		registerCloseChannelListener(socket);
 		registerOpenChannelListener(socket);
+		registerNotifyUserMeterUpdatedListener(socket);
 	}
 
 	// openchannel
@@ -215,6 +221,32 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 						socket.emit(CLOSECHANNEL_EVENT, { rid: rid, evt: 'status', data: status });
 					});
 					callback({ rid: rid, message: "close channel pending" });
+				} catch (err) {
+					logger.warn(err);
+					callback({ rid: rid, error: err });
+				}
+			}
+		});
+	};
+
+	// notifyusermeterupdated
+	var NOTIFYUSERMETERUPDATED_EVENT = "notifyusermeterupdated";
+	var registerNotifyUserMeterUpdatedListener = function(socket) {
+		socket.on(NOTIFYUSERMETERUPDATED_EVENT, function(data, callback) {
+			debug(data);
+			var rid = data.rid; // request ID
+			var meterUpdateData = data.data; // meter update data
+			if (socket._limituser) {
+				callback({ rid: rid, error: "forbidden" });
+			} else {
+				try {
+					debug("meterUpdateData: ", meterUpdateData);
+					for (var i = 0; i < clients.length; i++) {
+						if (!clients[i]._limituser) {
+							clients[i].emit("meterupdated", { data: meterUpdateData });
+						}
+					}
+					callback({ rid: rid, message: "notification sent" });
 				} catch (err) {
 					logger.warn(err);
 					callback({ rid: rid, error: err });
