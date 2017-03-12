@@ -86,9 +86,14 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 
 		if (authRequired) {
 			try {
-				var authorizationHeaderToken = socket.handshake.headers.authorization.substr(6);
-				if (!authorizationHeaderToken) {
+				var authorizationHeaderToken;
+				if (socket.handshake.query.auth) {
 					authorizationHeaderToken = socket.handshake.query.auth;
+				} else if (socket.handshake.headers.authorization) {
+					authorizationHeaderToken = socket.handshake.headers.authorization.substr(6);
+				} else {
+					socket.disconnect('unauthorized');
+					return;
 				}
 				debug("authorizationHeaderToken: " + authorizationHeaderToken);
 				if (authorizationHeaderToken === userToken) {
@@ -100,6 +105,7 @@ module.exports = function(io, lightning, login, pass, limitlogin, limitpass, lnd
 					return;
 				}
 			} catch (err) { // probably because of missing authorization header
+				console.log(err);
 				socket.disconnect('unauthorized');
 				return;
 			}
